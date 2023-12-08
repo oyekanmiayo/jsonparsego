@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 )
@@ -30,9 +31,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	tokenList := scanTokens(data)
-	valid := parseTokens(tokenList)
+	tokenList, err := scanTokens(data)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
 
+	valid := parseTokens(tokenList)
 	if valid {
 		os.Exit(0)
 	} else {

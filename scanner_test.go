@@ -2,10 +2,11 @@ package main
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
-func TestScanTokens(t *testing.T) {
+func TestScanTokens_Valid(t *testing.T) {
 	testCases := []struct {
 		name              string
 		data              []byte
@@ -37,9 +38,36 @@ func TestScanTokens(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actualTokenList := scanTokens(tc.data)
+		actualTokenList, err := scanTokens(tc.data)
 		if !reflect.DeepEqual(actualTokenList, tc.expectedTokenList) {
-			t.Errorf("scanTokens expected %v, got %v", tc.expectedTokenList, actualTokenList)
+			t.Errorf("scanTokens expected: %v, got: %v. details: %v", tc.expectedTokenList, actualTokenList, err)
 		}
+	}
+}
+
+func TestScanTokens_Invalid(t *testing.T) {
+	testCases := []struct {
+		name              string
+		data              []byte
+		expectedTokenList []Token
+		errStr            string
+	}{
+		{
+			name:              "Invalid json with wrongly placed strings",
+			data:              []byte(`"name":"ayo"}`),
+			expectedTokenList: []Token{},
+			errStr:            "json file is empty, so this is an illegal string",
+		},
+	}
+	for _, tc := range testCases {
+		actualTokenList, err := scanTokens(tc.data)
+		if !reflect.DeepEqual(actualTokenList, tc.expectedTokenList) {
+			t.Errorf("scanTokens expected: %v, got: %v. expected an error.", tc.expectedTokenList, actualTokenList)
+		}
+
+		if !strings.Contains(err.Error(), tc.errStr) {
+			t.Errorf("expected: %v, got: %v.", tc.errStr, err.Error())
+		}
+
 	}
 }
