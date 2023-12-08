@@ -69,7 +69,6 @@ func scanTokens(data []byte) ([]Token, error) {
 			} else if TokenList[len(TokenList)-1] == NAME_SEPARATOR {
 				TokenList = append(TokenList, VALUE_STRING)
 			}
-
 		case ':':
 			TokenList = append(TokenList, NAME_SEPARATOR)
 		case ',':

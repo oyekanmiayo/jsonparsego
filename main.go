@@ -37,10 +37,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	valid := parseTokens(tokenList)
+	valid, err := parseTokens(tokenList)
 	if valid {
 		os.Exit(0)
 	} else {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }

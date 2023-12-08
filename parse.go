@@ -1,6 +1,8 @@
 package main
 
-func parseTokens(TokenList []Token) bool {
+import "fmt"
+
+func parseTokens(TokenList []Token) (bool, error) {
 	stack := NewStack()
 	for _, t := range TokenList {
 		switch t {
@@ -16,7 +18,7 @@ func parseTokens(TokenList []Token) bool {
 			if stack.Peek() == LEFT_CURLY_BRACKET {
 				stack.Pop()
 			} else {
-				return false
+				return false, fmt.Errorf("there's no equivalent { for the }")
 			}
 		case VALUE_STRING:
 			// This can happen if a name string is coming after a name:value pair (which follows
@@ -31,14 +33,14 @@ func parseTokens(TokenList []Token) bool {
 			if stack.Peek() == VALUE_SEPARATOR {
 				stack.Pop()
 			} else {
-				return false
+				return false, fmt.Errorf("a literal must come after a comma (value separator)")
 			}
 			stack.Push(LITERAL)
 		case NUMBER:
 			if stack.Peek() == VALUE_SEPARATOR {
 				stack.Pop()
 			} else {
-				return false
+				return false, fmt.Errorf("a number must come after a comma (value separator)")
 			}
 			stack.Push(NUMBER)
 		case NAME_STRING:
@@ -47,24 +49,23 @@ func parseTokens(TokenList []Token) bool {
 			if stack.Peek() == NAME_STRING {
 				stack.Pop()
 			} else {
-				return false
+				return false, fmt.Errorf("a colon (name separator) must come after a name string")
 			}
 		case VALUE_SEPARATOR:
 			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER {
 				stack.Pop()
 			} else {
-				return false
+				return false, fmt.Errorf("a comma (value separator) must come after a value string or literal or number")
 			}
 			stack.Push(VALUE_SEPARATOR)
 		default:
-			panic("unhandled default case")
+			return false, fmt.Errorf("unhandled token")
 		}
-
 	}
 
 	if stack.IsEmpty() {
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, fmt.Errorf("unknown error")
 }
