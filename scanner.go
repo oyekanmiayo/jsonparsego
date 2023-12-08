@@ -114,18 +114,15 @@ func scanTokens(data []byte) []Token {
 				for ; i < len(data); i++ {
 					if IsDigit(data[i]) {
 						continue
-					}
-
-					// fraction
-					if data[i] == '.' && IsDigit(data[i+1]) {
+					} else if data[i] == '.' && IsDigit(data[i+1]) { // fraction
 						continue
-					}
-
-					// exponent
-					if (data[i] == 'e' || data[i] == 'E') && IsDigit(data[i+1]) {
+					} else if (data[i] == 'e' || data[i] == 'E') && IsDigit(data[i+1]) { // exponent
 						continue
+					} else {
+						break
 					}
 				}
+				fmt.Println(string(data[byteIdx:i]))
 				byteIdx = i - 1
 				TokenList = append(TokenList, NUMBER)
 			} else {
