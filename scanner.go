@@ -109,23 +109,29 @@ func scanTokens(data []byte) []Token {
 			byteIdx = i + 3
 		case '-':
 		default:
-			// if IsDigit(b) {
-			// 	i := byteIdx + 1
-			// 	for ; i < len(data); i++ {
-			// 		if IsDigit(data[i]) {
-			// 			continue
-			// 		}
-			//
-			// 		if data[i] == '.' && IsDigit(data[i+1]) {
-			// 			continue
-			// 		} else {
-			// 			break
-			// 		}
-			// 	}
-			// }
+			if IsDigit(b) {
+				i := byteIdx + 1
+				for ; i < len(data); i++ {
+					if IsDigit(data[i]) {
+						continue
+					}
 
-			fmt.Println(string(b))
-			panic("Invalid token")
+					// fraction
+					if data[i] == '.' && IsDigit(data[i+1]) {
+						continue
+					}
+
+					// exponent
+					if (data[i] == 'e' || data[i] == 'E') && IsDigit(data[i+1]) {
+						continue
+					}
+				}
+				byteIdx = i - 1
+				TokenList = append(TokenList, NUMBER)
+			} else {
+				fmt.Println(string(b))
+				panic("Invalid token")
+			}
 		}
 	}
 

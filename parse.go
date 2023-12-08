@@ -10,7 +10,7 @@ func parseTokens(TokenList []Token) bool {
 		case RIGHT_CURLY_BRACKET:
 			// This is for a case where we have just one name:value pair and value is a string
 			// when we encounter the right curly brace, the value string will still be in the stack
-			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL {
+			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER {
 				stack.Pop()
 			}
 			if stack.Peek() == LEFT_CURLY_BRACKET {
@@ -30,8 +30,17 @@ func parseTokens(TokenList []Token) bool {
 			// with a comma).
 			if stack.Peek() == VALUE_SEPARATOR {
 				stack.Pop()
+			} else {
+				return false
 			}
 			stack.Push(LITERAL)
+		case NUMBER:
+			if stack.Peek() == VALUE_SEPARATOR {
+				stack.Pop()
+			} else {
+				return false
+			}
+			stack.Push(NUMBER)
 		case NAME_STRING:
 			stack.Push(NAME_STRING)
 		case NAME_SEPARATOR:
@@ -41,7 +50,7 @@ func parseTokens(TokenList []Token) bool {
 				return false
 			}
 		case VALUE_SEPARATOR:
-			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL {
+			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER {
 				stack.Pop()
 			} else {
 				return false
