@@ -46,6 +46,11 @@ func scanTokens(data []byte) []Token {
 		case '"':
 			i := byteIdx + 1
 			for ; i < len(data); i++ {
+				// If we find an escapes quotation \" continue
+				if data[i] == '"' && data[i-1] == '\\' {
+					continue
+				}
+
 				if data[i] == '"' {
 					s := string(data[byteIdx+1 : i])
 					fmt.Println(s)
