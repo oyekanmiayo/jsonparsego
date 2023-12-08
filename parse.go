@@ -8,7 +8,11 @@ func parseTokens(TokenList []Token) (bool, error) {
 		switch t.tokenType {
 		case LEFT_CURLY_BRACKET:
 			// we should check if stack is empty or the top is a colon
-			stack.Push(LEFT_CURLY_BRACKET)
+			if stack.IsEmpty() || stack.Peek() == NAME_SEPARATOR {
+				stack.Push(LEFT_CURLY_BRACKET)
+			} else {
+				return false, fmt.Errorf("{ can only come after a colon or at the beginning of an empty json file")
+			}
 		case RIGHT_CURLY_BRACKET:
 			// This is for a case where we have just one name:value pair and value is a string
 			// when we encounter the right curly brace, the value string will still be in the stack

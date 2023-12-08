@@ -76,3 +76,38 @@ func TestScanTokens_Invalid(t *testing.T) {
 
 	}
 }
+
+func TestGetTokenState(t *testing.T) {
+	testCases := []struct {
+		name               string
+		tokenList          []Token
+		expectedTokenState TokenState
+	}{
+		{
+			name: "Return WITHIN_OBJECT", tokenList: []Token{{tokenType: LEFT_CURLY_BRACKET}},
+			expectedTokenState: WITHIN_OBJECT,
+		},
+		{
+			name: "Return WITHIN_ARRAY", tokenList: []Token{{tokenType: LEFT_SQUARE_BRACKET}},
+			expectedTokenState: WITHIN_ARRAY,
+		},
+		{
+			name: "Return INVALID", tokenList: []Token{},
+			expectedTokenState: INVALID,
+		},
+		{
+			name: "Return WITHIN_OBJECT because that's what the last token's state is",
+			tokenList: []Token{
+				{tokenType: LEFT_SQUARE_BRACKET},
+				{tokenType: NAME_STRING, tokenState: WITHIN_OBJECT},
+			},
+			expectedTokenState: WITHIN_OBJECT,
+		},
+	}
+	for _, tc := range testCases {
+		actualTokenState := getTokenState(tc.tokenList)
+		if !reflect.DeepEqual(actualTokenState, tc.expectedTokenState) {
+			t.Errorf("scanTokens expected: %v, got: %v.", tc.expectedTokenState, actualTokenState)
+		}
+	}
+}
