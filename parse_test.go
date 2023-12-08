@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -21,11 +22,29 @@ func TestParseTokens_Valid(t *testing.T) {
 			expectedBool: true,
 		},
 	}
-
 	for _, tc := range testCases {
 		actualBool, err := parseTokens(tc.tokenList)
 		if !reflect.DeepEqual(actualBool, tc.expectedBool) {
 			t.Errorf("expected: %v, got: %v. details: %v", tc.expectedBool, actualBool, err)
+		}
+	}
+}
+
+func TestParseTokens_Invalid(t *testing.T) {
+	testCases := []struct {
+		name         string
+		tokenList    []Token
+		expectedBool bool
+		errStr       string
+	}{}
+	for _, tc := range testCases {
+		actualBool, err := parseTokens(tc.tokenList)
+		if !reflect.DeepEqual(actualBool, tc.expectedBool) {
+			t.Errorf("expected: %v, got: %v.", tc.expectedBool, actualBool)
+		}
+
+		if !strings.Contains(err.Error(), tc.errStr) {
+			t.Errorf("expected: %v, got: %v.", tc.errStr, err.Error())
 		}
 	}
 }

@@ -3,5 +3,11 @@
   "date": "Dec 7th, 2023",
   "bool": true,
   "null": null,
-  "num": 123
+  "num": 123,
+  "nested object": {
+    "greeting": "hi",
+    "weather": "sunny",
+    "number": 674
+  },
+  "array": [123, "damn"]
 }
