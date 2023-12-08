@@ -4,10 +4,24 @@ import (
 	"fmt"
 )
 
-type Token int
+type Token struct {
+	tokenType  TokenType
+	tokenState TokenState
+	tokenValue interface{}
+	tokenDepth int
+}
+
+type TokenState int
 
 const (
-	ILLEGAL Token = iota
+	WITHIN_OBJECT TokenState = iota
+	WITHIN_ARRAY
+)
+
+type TokenType int
+
+const (
+	ILLEGAL TokenType = iota
 
 	LEFT_CURLY_BRACKET  // '{'
 	RIGHT_CURLY_BRACKET // '}'
@@ -40,9 +54,9 @@ func scanTokens(data []byte) ([]Token, error) {
 		case '\r':
 			continue
 		case '{':
-			TokenList = append(TokenList, LEFT_CURLY_BRACKET)
+			TokenList = append(TokenList, Token{tokenType: LEFT_CURLY_BRACKET})
 		case '}':
-			TokenList = append(TokenList, RIGHT_CURLY_BRACKET)
+			TokenList = append(TokenList, Token{tokenType: RIGHT_CURLY_BRACKET})
 		// This assumes the beginning of a name or value string
 		case '"':
 			if len(TokenList) == 0 {
@@ -64,19 +78,19 @@ func scanTokens(data []byte) ([]Token, error) {
 			}
 			byteIdx = i
 
-			if TokenList[len(TokenList)-1] == LEFT_CURLY_BRACKET || TokenList[len(TokenList)-1] == VALUE_SEPARATOR {
-				TokenList = append(TokenList, NAME_STRING)
-			} else if TokenList[len(TokenList)-1] == NAME_SEPARATOR {
-				TokenList = append(TokenList, VALUE_STRING)
+			if TokenList[len(TokenList)-1].tokenType == LEFT_CURLY_BRACKET || TokenList[len(TokenList)-1].tokenType == VALUE_SEPARATOR {
+				TokenList = append(TokenList, Token{tokenType: NAME_STRING})
+			} else if TokenList[len(TokenList)-1].tokenType == NAME_SEPARATOR {
+				TokenList = append(TokenList, Token{tokenType: VALUE_STRING})
 			}
 		case ':':
-			TokenList = append(TokenList, NAME_SEPARATOR)
+			TokenList = append(TokenList, Token{tokenType: NAME_SEPARATOR})
 		case ',':
-			TokenList = append(TokenList, VALUE_SEPARATOR)
+			TokenList = append(TokenList, Token{tokenType: VALUE_SEPARATOR})
 		case 'f':
 			// For this case to remain valid, the case for quotation MUST always come before.
 
-			if TokenList[len(TokenList)-1] != NAME_SEPARATOR {
+			if TokenList[len(TokenList)-1].tokenType != NAME_SEPARATOR {
 				// Because we check for full strings earlier, the appearance of an f here means it has no quotation around it
 				// and the only two reasons for that are for false, or some invalid value. In any case, a colon must come before
 				// it.
@@ -86,11 +100,11 @@ func scanTokens(data []byte) ([]Token, error) {
 			i := byteIdx
 			if data[i+1] == 'a' && data[i+2] == 'l' && data[i+3] == 's' && data[i+4] == 'e' {
 				// Found false
-				TokenList = append(TokenList, LITERAL)
+				TokenList = append(TokenList, Token{tokenType: LITERAL})
 			}
 			byteIdx = i + 4
 		case 't':
-			if TokenList[len(TokenList)-1] != NAME_SEPARATOR {
+			if TokenList[len(TokenList)-1].tokenType != NAME_SEPARATOR {
 				// Because we check for full strings earlier, the appearance of a t here means it has no quotation around it
 				// and the only two reasons for that are for true, or some invalid value. In any case, a colon must come before
 				// it.
@@ -100,11 +114,11 @@ func scanTokens(data []byte) ([]Token, error) {
 			i := byteIdx
 			if data[i+1] == 'r' && data[i+2] == 'u' && data[i+3] == 'e' {
 				// Found true
-				TokenList = append(TokenList, LITERAL)
+				TokenList = append(TokenList, Token{tokenType: LITERAL})
 			}
 			byteIdx = i + 3
 		case 'n':
-			if TokenList[len(TokenList)-1] != NAME_SEPARATOR {
+			if TokenList[len(TokenList)-1].tokenType != NAME_SEPARATOR {
 				// Because we check for full strings earlier, the appearance of an n here means it has no quotation around it
 				// and the only two reasons for that are for null, or some invalid value. In any case, a colon must come before
 				// it.
@@ -114,7 +128,7 @@ func scanTokens(data []byte) ([]Token, error) {
 			i := byteIdx
 			if data[i+1] == 'u' && data[i+2] == 'l' && data[i+3] == 'l' {
 				// Found true
-				TokenList = append(TokenList, LITERAL)
+				TokenList = append(TokenList, Token{tokenType: LITERAL})
 			}
 			byteIdx = i + 3
 		case '-':
@@ -134,7 +148,7 @@ func scanTokens(data []byte) ([]Token, error) {
 				}
 				fmt.Println(string(data[byteIdx:i]))
 				byteIdx = i - 1
-				TokenList = append(TokenList, NUMBER)
+				TokenList = append(TokenList, Token{tokenType: NUMBER})
 			} else {
 				fmt.Println(string(b))
 				return []Token{}, fmt.Errorf("invalid token: %c", b)

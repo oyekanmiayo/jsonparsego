@@ -5,7 +5,7 @@ import "fmt"
 func parseTokens(TokenList []Token) (bool, error) {
 	stack := NewStack()
 	for _, t := range TokenList {
-		switch t {
+		switch t.tokenType {
 		case LEFT_CURLY_BRACKET:
 			// we should check if stack is empty or the top is a colon
 			stack.Push(LEFT_CURLY_BRACKET)

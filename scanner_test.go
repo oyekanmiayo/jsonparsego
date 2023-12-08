@@ -16,23 +16,28 @@ func TestScanTokens_Valid(t *testing.T) {
 			name: "Valid json with only strings",
 			data: []byte(`{"name":"ayo"}`),
 			expectedTokenList: []Token{
-				LEFT_CURLY_BRACKET, NAME_STRING, NAME_SEPARATOR, VALUE_STRING, RIGHT_CURLY_BRACKET,
+				{tokenType: LEFT_CURLY_BRACKET}, {tokenType: NAME_STRING},
+				{tokenType: NAME_SEPARATOR}, {tokenType: VALUE_STRING},
+				{tokenType: RIGHT_CURLY_BRACKET},
 			},
 		},
 		{
 			name: "Valid json with numbers",
 			data: []byte(`{"name":123}`),
 			expectedTokenList: []Token{
-				LEFT_CURLY_BRACKET, NAME_STRING, NAME_SEPARATOR, NUMBER, RIGHT_CURLY_BRACKET,
+				{tokenType: LEFT_CURLY_BRACKET}, {tokenType: NAME_STRING},
+				{tokenType: NAME_SEPARATOR}, {tokenType: NUMBER}, {tokenType: RIGHT_CURLY_BRACKET},
 			},
 		},
 		{
 			name: "Valid json with literals",
 			data: []byte(`{"tbool":true, "fbool":false, "null":null }`),
 			expectedTokenList: []Token{
-				LEFT_CURLY_BRACKET, NAME_STRING, NAME_SEPARATOR, LITERAL, VALUE_SEPARATOR,
-				NAME_STRING, NAME_SEPARATOR, LITERAL, VALUE_SEPARATOR, NAME_STRING, NAME_SEPARATOR,
-				LITERAL, RIGHT_CURLY_BRACKET,
+				{tokenType: LEFT_CURLY_BRACKET}, {tokenType: NAME_STRING},
+				{tokenType: NAME_SEPARATOR}, {tokenType: LITERAL}, {tokenType: VALUE_SEPARATOR},
+				{tokenType: NAME_STRING}, {tokenType: NAME_SEPARATOR}, {tokenType: LITERAL},
+				{tokenType: VALUE_SEPARATOR}, {tokenType: NAME_STRING}, {tokenType: NAME_SEPARATOR},
+				{tokenType: LITERAL}, {tokenType: RIGHT_CURLY_BRACKET},
 			},
 		},
 	}

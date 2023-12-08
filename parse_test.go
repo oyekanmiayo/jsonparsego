@@ -14,7 +14,9 @@ func TestParseTokens_Valid(t *testing.T) {
 		{
 			name: "Valid json with one line",
 			tokenList: []Token{
-				LEFT_CURLY_BRACKET, NAME_STRING, NAME_SEPARATOR, VALUE_STRING, RIGHT_CURLY_BRACKET,
+				{tokenType: LEFT_CURLY_BRACKET}, {tokenType: NAME_STRING},
+				{tokenType: NAME_SEPARATOR}, {tokenType: VALUE_STRING},
+				{tokenType: RIGHT_CURLY_BRACKET},
 			},
 			expectedBool: true,
 		},
