@@ -16,28 +16,41 @@ func TestScanTokens_Valid(t *testing.T) {
 			name: "Valid json with only strings",
 			data: []byte(`{"name":"ayo"}`),
 			expectedTokenList: []Token{
-				{tokenType: LEFT_CURLY_BRACKET}, {tokenType: NAME_STRING},
-				{tokenType: NAME_SEPARATOR}, {tokenType: VALUE_STRING},
-				{tokenType: RIGHT_CURLY_BRACKET},
+				{tokenType: LEFT_CURLY_BRACKET, tokenState: INVALID},
+				{tokenType: NAME_STRING, tokenState: WITHIN_OBJECT},
+				{tokenType: NAME_SEPARATOR, tokenState: WITHIN_OBJECT},
+				{tokenType: VALUE_STRING, tokenState: WITHIN_OBJECT},
+				{tokenType: RIGHT_CURLY_BRACKET, tokenState: INVALID},
 			},
 		},
 		{
 			name: "Valid json with numbers",
 			data: []byte(`{"name":123}`),
 			expectedTokenList: []Token{
-				{tokenType: LEFT_CURLY_BRACKET}, {tokenType: NAME_STRING},
-				{tokenType: NAME_SEPARATOR}, {tokenType: NUMBER}, {tokenType: RIGHT_CURLY_BRACKET},
+				{tokenType: LEFT_CURLY_BRACKET, tokenState: INVALID},
+				{tokenType: NAME_STRING, tokenState: WITHIN_OBJECT},
+				{tokenType: NAME_SEPARATOR, tokenState: WITHIN_OBJECT},
+				{tokenType: NUMBER, tokenState: WITHIN_OBJECT},
+				{tokenType: RIGHT_CURLY_BRACKET, tokenState: INVALID},
 			},
 		},
 		{
 			name: "Valid json with literals",
 			data: []byte(`{"tbool":true, "fbool":false, "null":null }`),
 			expectedTokenList: []Token{
-				{tokenType: LEFT_CURLY_BRACKET}, {tokenType: NAME_STRING},
-				{tokenType: NAME_SEPARATOR}, {tokenType: LITERAL}, {tokenType: VALUE_SEPARATOR},
-				{tokenType: NAME_STRING}, {tokenType: NAME_SEPARATOR}, {tokenType: LITERAL},
-				{tokenType: VALUE_SEPARATOR}, {tokenType: NAME_STRING}, {tokenType: NAME_SEPARATOR},
-				{tokenType: LITERAL}, {tokenType: RIGHT_CURLY_BRACKET},
+				{tokenType: LEFT_CURLY_BRACKET, tokenState: INVALID},
+				{tokenType: NAME_STRING, tokenState: WITHIN_OBJECT},
+				{tokenType: NAME_SEPARATOR, tokenState: WITHIN_OBJECT},
+				{tokenType: LITERAL, tokenState: WITHIN_OBJECT},
+				{tokenType: VALUE_SEPARATOR, tokenState: WITHIN_OBJECT},
+				{tokenType: NAME_STRING, tokenState: WITHIN_OBJECT},
+				{tokenType: NAME_SEPARATOR, tokenState: WITHIN_OBJECT},
+				{tokenType: LITERAL, tokenState: WITHIN_OBJECT},
+				{tokenType: VALUE_SEPARATOR, tokenState: WITHIN_OBJECT},
+				{tokenType: NAME_STRING, tokenState: WITHIN_OBJECT},
+				{tokenType: NAME_SEPARATOR, tokenState: WITHIN_OBJECT},
+				{tokenType: LITERAL, tokenState: WITHIN_OBJECT},
+				{tokenType: RIGHT_CURLY_BRACKET, tokenState: INVALID},
 			},
 		},
 	}
@@ -77,37 +90,38 @@ func TestScanTokens_Invalid(t *testing.T) {
 	}
 }
 
-func TestGetTokenState(t *testing.T) {
-	testCases := []struct {
-		name               string
-		tokenList          []Token
-		expectedTokenState TokenState
-	}{
-		{
-			name: "Return WITHIN_OBJECT", tokenList: []Token{{tokenType: LEFT_CURLY_BRACKET}},
-			expectedTokenState: WITHIN_OBJECT,
-		},
-		{
-			name: "Return WITHIN_ARRAY", tokenList: []Token{{tokenType: LEFT_SQUARE_BRACKET}},
-			expectedTokenState: WITHIN_ARRAY,
-		},
-		{
-			name: "Return INVALID", tokenList: []Token{},
-			expectedTokenState: INVALID,
-		},
-		{
-			name: "Return WITHIN_OBJECT because that's what the last token's state is",
-			tokenList: []Token{
-				{tokenType: LEFT_SQUARE_BRACKET},
-				{tokenType: NAME_STRING, tokenState: WITHIN_OBJECT},
-			},
-			expectedTokenState: WITHIN_OBJECT,
-		},
-	}
-	for _, tc := range testCases {
-		actualTokenState := getTokenState(tc.tokenList)
-		if !reflect.DeepEqual(actualTokenState, tc.expectedTokenState) {
-			t.Errorf("scanTokens expected: %v, got: %v.", tc.expectedTokenState, actualTokenState)
+func TestGetTokenState_Panics(t *testing.T) {
+	s := NewStack()
+	s.Push(1)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
 		}
+	}()
+	getTokenState(s)
+
+	// 	assert
+	// 	assert.Panics(t, func() { })
+	//
+	// 	s.Push(2)
+	// 	s.Push(3)
+}
+
+func TestGetTokenState(t *testing.T) {
+	tokenStateStack := NewStack()
+
+	if state := getTokenState(tokenStateStack); state != INVALID {
+		t.Errorf("Incorrect top element: expected %v, got %v", INVALID, state)
+	}
+
+	tokenStateStack.Push(WITHIN_OBJECT)
+	if state := getTokenState(tokenStateStack); state != WITHIN_OBJECT {
+		t.Errorf("Incorrect top element: expected %v, got %v", WITHIN_OBJECT, state)
+	}
+
+	tokenStateStack.Push(WITHIN_ARRAY)
+	if state := getTokenState(tokenStateStack); state != WITHIN_ARRAY {
+		t.Errorf("Incorrect top element: expected %v, got %v", WITHIN_ARRAY, state)
 	}
 }

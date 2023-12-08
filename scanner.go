@@ -43,6 +43,7 @@ const (
 func scanTokens(data []byte) ([]Token, error) {
 
 	var TokenList []Token
+	tokenStateStack := NewStack()
 
 	byteIdx := 0
 	for ; byteIdx < len(data); byteIdx++ {
@@ -55,13 +56,27 @@ func scanTokens(data []byte) ([]Token, error) {
 		case '\r':
 			continue
 		case '{':
-			TokenList = append(TokenList, Token{tokenType: LEFT_CURLY_BRACKET})
+			TokenList = append(TokenList, Token{
+				tokenType: LEFT_CURLY_BRACKET, tokenState: getTokenState(tokenStateStack),
+			})
+			tokenStateStack.Push(WITHIN_OBJECT)
 		case '}':
-			TokenList = append(TokenList, Token{tokenType: RIGHT_CURLY_BRACKET})
+			if tokenStateStack.Pop() != WITHIN_OBJECT {
+				panic("Not storing token states well (WITHIN_OBJECT)")
+			}
+			TokenList = append(TokenList, Token{
+				tokenType: RIGHT_CURLY_BRACKET, tokenState: getTokenState(tokenStateStack),
+			})
 		case '[':
 			TokenList = append(TokenList, Token{tokenType: LEFT_SQUARE_BRACKET})
+			tokenStateStack.Push(WITHIN_ARRAY)
 		case ']':
-			TokenList = append(TokenList, Token{tokenType: RIGHT_SQUARE_BRACKET})
+			if tokenStateStack.Pop() != WITHIN_ARRAY {
+				panic("Not storing token states well (WITHIN_ARRAY)")
+			}
+			TokenList = append(TokenList, Token{
+				tokenType: RIGHT_SQUARE_BRACKET, tokenState: getTokenState(tokenStateStack),
+			})
 		// This assumes the beginning of a name or value string
 		case '"':
 			if len(TokenList) == 0 {
@@ -87,20 +102,20 @@ func scanTokens(data []byte) ([]Token, error) {
 
 			if TokenList[len(TokenList)-1].tokenType == LEFT_CURLY_BRACKET || TokenList[len(TokenList)-1].tokenType == VALUE_SEPARATOR {
 				TokenList = append(TokenList, Token{
-					tokenType: NAME_STRING, tokenState: getTokenState(TokenList),
+					tokenType: NAME_STRING, tokenState: getTokenState(tokenStateStack),
 				})
 			} else if TokenList[len(TokenList)-1].tokenType == NAME_SEPARATOR {
 				TokenList = append(TokenList, Token{
-					tokenType: VALUE_STRING, tokenState: getTokenState(TokenList),
+					tokenType: VALUE_STRING, tokenState: getTokenState(tokenStateStack),
 				})
 			}
 		case ':':
 			TokenList = append(TokenList, Token{
-				tokenType: NAME_SEPARATOR, tokenState: getTokenState(TokenList),
+				tokenType: NAME_SEPARATOR, tokenState: getTokenState(tokenStateStack),
 			})
 		case ',':
 			TokenList = append(TokenList, Token{
-				tokenType: VALUE_SEPARATOR, tokenState: getTokenState(TokenList),
+				tokenType: VALUE_SEPARATOR, tokenState: getTokenState(tokenStateStack),
 			})
 		case 'f':
 			// For this case to remain valid, the case for quotation MUST always come before.
@@ -116,7 +131,7 @@ func scanTokens(data []byte) ([]Token, error) {
 			if data[i+1] == 'a' && data[i+2] == 'l' && data[i+3] == 's' && data[i+4] == 'e' {
 				// Found false
 				TokenList = append(TokenList, Token{
-					tokenType: LITERAL, tokenState: getTokenState(TokenList),
+					tokenType: LITERAL, tokenState: getTokenState(tokenStateStack),
 				})
 			} else {
 				// Test
@@ -135,7 +150,7 @@ func scanTokens(data []byte) ([]Token, error) {
 			if data[i+1] == 'r' && data[i+2] == 'u' && data[i+3] == 'e' {
 				// Found true
 				TokenList = append(TokenList, Token{
-					tokenType: LITERAL, tokenState: getTokenState(TokenList),
+					tokenType: LITERAL, tokenState: getTokenState(tokenStateStack),
 				})
 			} else {
 				// Test
@@ -154,7 +169,7 @@ func scanTokens(data []byte) ([]Token, error) {
 			if data[i+1] == 'u' && data[i+2] == 'l' && data[i+3] == 'l' {
 				// Found true
 				TokenList = append(TokenList, Token{
-					tokenType: LITERAL, tokenState: getTokenState(TokenList),
+					tokenType: LITERAL, tokenState: getTokenState(tokenStateStack),
 				})
 			} else {
 				// Test
@@ -179,7 +194,7 @@ func scanTokens(data []byte) ([]Token, error) {
 				fmt.Println(string(data[byteIdx:i]))
 				byteIdx = i - 1
 				TokenList = append(TokenList, Token{
-					tokenType: NUMBER, tokenState: getTokenState(TokenList),
+					tokenType: NUMBER, tokenState: getTokenState(tokenStateStack),
 				})
 			} else {
 				fmt.Println(string(b))
@@ -197,19 +212,14 @@ func IsDigit(b byte) bool {
 
 // This is only valid for non-structural tokens that get added to the stack
 // So invalid for {,},[,]
-func getTokenState(tokenList []Token) TokenState {
-	if len(tokenList) == 0 {
+func getTokenState(tokenStateStack *Stack) TokenState {
+	if tokenStateStack.IsEmpty() {
 		return INVALID
 	}
 
-	lastToken := tokenList[len(tokenList)-1]
-	if lastToken.tokenType == LEFT_CURLY_BRACKET {
-		return WITHIN_OBJECT
+	tokenState, ok := tokenStateStack.Peek().(TokenState)
+	if !ok {
+		panic("Stored invalid value in tokenStateStack")
 	}
-
-	if lastToken.tokenType == LEFT_SQUARE_BRACKET {
-		return WITHIN_ARRAY
-	}
-
-	return lastToken.tokenState
+	return tokenState
 }
