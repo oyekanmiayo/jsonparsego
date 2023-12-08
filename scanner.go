@@ -19,8 +19,9 @@ const (
 	NAME_SEPARATOR  // ':'
 	VALUE_SEPARATOR // ','
 
-	SPACE  // ' '
-	STRING // "string"
+	SPACE        // ' '
+	NAME_STRING  // for field titles which are always strings as in name:value
+	VALUE_STRING // "string"
 )
 
 func scanTokens(data []byte) []Token {
@@ -34,11 +35,14 @@ func scanTokens(data []byte) []Token {
 		switch b {
 		case ' ':
 		case '\n':
+		case '\t':
+		case '\r':
 			continue
 		case '{':
 			TokenList = append(TokenList, LEFT_CURLY_BRACKET)
 		case '}':
 			TokenList = append(TokenList, RIGHT_CURLY_BRACKET)
+		// This assumes the beginning of a name or value string
 		case '"':
 			i := byteIdx + 1
 			for ; i < len(data); i++ {
@@ -49,7 +53,17 @@ func scanTokens(data []byte) []Token {
 				}
 			}
 			byteIdx = i
-			TokenList = append(TokenList, STRING)
+
+			if len(TokenList) == 0 {
+				panic("Illegal string")
+			}
+
+			if TokenList[len(TokenList)-1] == LEFT_CURLY_BRACKET || TokenList[len(TokenList)-1] == VALUE_SEPARATOR {
+				TokenList = append(TokenList, NAME_STRING)
+			} else if TokenList[len(TokenList)-1] == NAME_SEPARATOR {
+				TokenList = append(TokenList, VALUE_STRING)
+			}
+
 		case ':':
 			TokenList = append(TokenList, NAME_SEPARATOR)
 		case ',':
