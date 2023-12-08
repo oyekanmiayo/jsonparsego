@@ -22,6 +22,8 @@ const (
 	SPACE        // ' '
 	NAME_STRING  // for field titles which are always strings as in name:value
 	VALUE_STRING // "string"
+
+	LITERAL // false, true or null
 )
 
 func scanTokens(data []byte) []Token {
@@ -73,6 +75,39 @@ func scanTokens(data []byte) []Token {
 			TokenList = append(TokenList, NAME_SEPARATOR)
 		case ',':
 			TokenList = append(TokenList, VALUE_SEPARATOR)
+		case 'f':
+			if TokenList[len(TokenList)-1] != NAME_SEPARATOR {
+				panic("Invalid json")
+			}
+
+			i := byteIdx
+			if data[i+1] == 'a' && data[i+2] == 'l' && data[i+3] == 's' && data[i+4] == 'e' {
+				// Found false
+				TokenList = append(TokenList, LITERAL)
+			}
+			byteIdx = i + 5
+		case 't':
+			if TokenList[len(TokenList)-1] != NAME_SEPARATOR {
+				panic("Invalid json")
+			}
+
+			i := byteIdx
+			if data[i+1] == 'r' && data[i+2] == 'u' && data[i+3] == 'e' {
+				// Found true
+				TokenList = append(TokenList, LITERAL)
+			}
+			byteIdx = i + 4
+		case 'n':
+			if TokenList[len(TokenList)-1] != NAME_SEPARATOR {
+				panic("Invalid json")
+			}
+
+			i := byteIdx
+			if data[i+1] == 'u' && data[i+2] == 'l' && data[i+3] == 'l' {
+				// Found true
+				TokenList = append(TokenList, LITERAL)
+			}
+			byteIdx = i + 4
 		default:
 			fmt.Println(string(b))
 			os.Exit(1)
