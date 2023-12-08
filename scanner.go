@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 )
 
 type Token int
@@ -19,11 +18,11 @@ const (
 	NAME_SEPARATOR  // ':'
 	VALUE_SEPARATOR // ','
 
-	SPACE        // ' '
 	NAME_STRING  // for field titles which are always strings as in name:value
 	VALUE_STRING // "string"
 
 	LITERAL // false, true or null
+	NUMBER
 )
 
 func scanTokens(data []byte) []Token {
@@ -85,7 +84,7 @@ func scanTokens(data []byte) []Token {
 				// Found false
 				TokenList = append(TokenList, LITERAL)
 			}
-			byteIdx = i + 5
+			byteIdx = i + 4
 		case 't':
 			if TokenList[len(TokenList)-1] != NAME_SEPARATOR {
 				panic("Invalid json")
@@ -96,7 +95,7 @@ func scanTokens(data []byte) []Token {
 				// Found true
 				TokenList = append(TokenList, LITERAL)
 			}
-			byteIdx = i + 4
+			byteIdx = i + 3
 		case 'n':
 			if TokenList[len(TokenList)-1] != NAME_SEPARATOR {
 				panic("Invalid json")
@@ -107,12 +106,32 @@ func scanTokens(data []byte) []Token {
 				// Found true
 				TokenList = append(TokenList, LITERAL)
 			}
-			byteIdx = i + 4
+			byteIdx = i + 3
+		case '-':
 		default:
+			// if IsDigit(b) {
+			// 	i := byteIdx + 1
+			// 	for ; i < len(data); i++ {
+			// 		if IsDigit(data[i]) {
+			// 			continue
+			// 		}
+			//
+			// 		if data[i] == '.' && IsDigit(data[i+1]) {
+			// 			continue
+			// 		} else {
+			// 			break
+			// 		}
+			// 	}
+			// }
+
 			fmt.Println(string(b))
-			os.Exit(1)
+			panic("Invalid token")
 		}
 	}
 
 	return TokenList
+}
+
+func IsDigit(b byte) bool {
+	return '0' <= b && b <= '9'
 }

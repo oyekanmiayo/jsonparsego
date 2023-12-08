@@ -5,6 +5,7 @@ func parseTokens(TokenList []Token) bool {
 	for _, t := range TokenList {
 		switch t {
 		case LEFT_CURLY_BRACKET:
+			// we should check if stack is empty or the top is a colon
 			stack.Push(LEFT_CURLY_BRACKET)
 		case RIGHT_CURLY_BRACKET:
 			// This is for a case where we have just one name:value pair and value is a string
