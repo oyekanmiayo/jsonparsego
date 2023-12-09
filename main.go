@@ -37,7 +37,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	valid, err := parseTokensV2(tokenList)
+	valid, err := parseTokens(tokenList)
 	if valid {
 		os.Exit(0)
 	} else {

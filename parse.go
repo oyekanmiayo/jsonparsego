@@ -1,128 +1,80 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func parseTokens(TokenList []Token) (bool, error) {
+	// This stack should only contain {, }, [ or ] at any point
 	stack := NewStack()
 	for i, t := range TokenList {
-		i = i
 		switch t.tokenType {
 		case LEFT_CURLY_BRACKET:
-			// we should check if stack is empty or the top is a colon
-			if stack.IsEmpty() || stack.Peek() == NAME_SEPARATOR {
+			if i == 0 {
 				stack.Push(LEFT_CURLY_BRACKET)
-			} else {
-				return false, fmt.Errorf("{ can only come after a colon or at the beginning of an empty json file")
+				continue
 			}
+
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != NAME_SEPARATOR && (t.tokenState == WITHIN_ARRAY && prevTkn != VALUE_SEPARATOR && prevTkn != LEFT_SQUARE_BRACKET) {
+				return false, fmt.Errorf("NAME_SEPARATOR should preceed LEFT_CURLY_BRACKET if this is a nested object or else nothing should preceed it, instead got: %v\n", tokens[prevTkn])
+			}
+			stack.Push(LEFT_CURLY_BRACKET)
 		case RIGHT_CURLY_BRACKET:
-			// This is for a case where we have just one name:value pair and value is a string
-			// when we encounter the right curly brace, the value string will still be in the stack
-			// Add one for }
-			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER {
-				stack.Pop()
-			} else if stack.Size() > 1 && stack.Peek() == NAME_SEPARATOR {
-				// Valid for nested objects
-				stack.Pop()
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != VALUE_STRING && prevTkn != NUMBER && prevTkn != LITERAL && prevTkn != RIGHT_CURLY_BRACKET && prevTkn != RIGHT_SQUARE_BRACKET {
+				return false, fmt.Errorf("VALUE_STRING or RIGHT_CURLY_BRACKET or LITERAL or RIGHT_SQUARE_BRACKET should preceed RIGHT_CURLY_BRACKET, instead got: %v\n", tokens[prevTkn])
 			}
-
-			if stack.Peek() == LEFT_CURLY_BRACKET {
-				stack.Pop()
-			} else {
-				return false, fmt.Errorf("there's no equivalent { for the }")
-			}
-
-			// this assumes that we have a nested
-			if stack.Size() > 1 {
-				stack.Push(RIGHT_CURLY_BRACKET)
-			}
+			stack.Pop()
 		case LEFT_SQUARE_BRACKET:
-			if stack.IsEmpty() || (stack.Peek() != NAME_SEPARATOR) {
-				return false, fmt.Errorf("[ can only come after a colon (:)")
-			}
-
-			if stack.Peek() != NAME_SEPARATOR {
-				stack.Pop()
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != NAME_SEPARATOR {
+				return false, fmt.Errorf("NAME_SEPARATOR should preceed LEFT_SQUARE_BRACKET, instead got: %v\n", tokens[prevTkn])
 			}
 			stack.Push(LEFT_SQUARE_BRACKET)
 		case RIGHT_SQUARE_BRACKET:
-
-			// Add one for }
-			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER {
-				stack.Pop()
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != VALUE_STRING && prevTkn != NUMBER && prevTkn != LITERAL && prevTkn != RIGHT_CURLY_BRACKET {
+				return false, fmt.Errorf("VALUE_STRING or RIGHT_CURLY_BRACKET or LITERAL should preceed RIGHT_SQUARE_BRACKET, instead got: %v\n", tokens[prevTkn])
 			}
-
-			if stack.IsEmpty() || (stack.Peek() != LEFT_SQUARE_BRACKET) {
-				return false, fmt.Errorf("] can only come after [")
-			}
-
-			if stack.Peek() == LEFT_SQUARE_BRACKET {
-				stack.Pop()
-			}
-
-			stack.Push(RIGHT_SQUARE_BRACKET)
+			stack.Pop()
 		case NAME_STRING:
-			if stack.IsEmpty() || (stack.Peek() != VALUE_SEPARATOR && stack.Peek() != LEFT_CURLY_BRACKET) {
-				return false, fmt.Errorf("a field name MUST come before a comma or a left curly bracket")
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != LEFT_CURLY_BRACKET && prevTkn != VALUE_SEPARATOR {
+				return false, fmt.Errorf("LEFT_CURLY_BRACKET or VALUE_SEPARATOR should preceed NAME_STRING, instead got: %v\n", tokens[prevTkn])
 			}
-
-			if stack.Peek() == VALUE_SEPARATOR {
-				stack.Pop()
-			}
-			stack.Push(NAME_STRING)
-		case VALUE_STRING:
-			// This can happen if a name string is coming after a name:value pair (which follows
-			// with a comma).
-			if stack.Peek() == NAME_SEPARATOR {
-				stack.Pop()
-			} else if t.tokenState == WITHIN_ARRAY && (stack.Peek() == LEFT_SQUARE_BRACKET || stack.Peek() == VALUE_SEPARATOR) {
-				if stack.Peek() == VALUE_SEPARATOR {
-					stack.Pop()
-				}
-			} else {
-				// error
-			}
-			stack.Push(VALUE_STRING)
-		case LITERAL:
-			// This can happen if a name string is coming after a name:value pair (which follows
-			// with a comma).
-			if stack.Peek() == NAME_SEPARATOR {
-				stack.Pop()
-			} else if t.tokenState == WITHIN_ARRAY && (stack.Peek() == LEFT_SQUARE_BRACKET || stack.Peek() == VALUE_SEPARATOR) {
-				if stack.Peek() == VALUE_SEPARATOR {
-					stack.Pop()
-				}
-			} else {
-				return false, fmt.Errorf("a literal must come after a colon, a comma or a [. The last two only apply when within an array")
-			}
-			stack.Push(LITERAL)
-		case NUMBER:
-			if stack.Peek() == NAME_SEPARATOR {
-				stack.Pop()
-			} else if t.tokenState == WITHIN_ARRAY && (stack.Peek() == LEFT_SQUARE_BRACKET || stack.Peek() == VALUE_SEPARATOR) {
-				if stack.Peek() == VALUE_SEPARATOR {
-					stack.Pop()
-				}
-			} else {
-				return false, fmt.Errorf("a number must come after a colon, a comma or a [. The last two only apply when within an array")
-			}
-			stack.Push(NUMBER)
-
 		case NAME_SEPARATOR:
-			if stack.Peek() == NAME_STRING {
-				stack.Pop()
-			} else {
-				return false, fmt.Errorf("a colon (name separator) must come after a name string")
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != NAME_STRING {
+				return false, fmt.Errorf("NAME_STRING should preceed NAME_SEPARATOR, instead got: %v\n", tokens[prevTkn])
 			}
-			stack.Push(NAME_SEPARATOR)
+		case VALUE_STRING:
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != NAME_SEPARATOR && (t.tokenState == WITHIN_ARRAY && prevTkn != LEFT_SQUARE_BRACKET && prevTkn != VALUE_SEPARATOR) {
+				return false, fmt.Errorf("NAME_SEPARATOR or LEFT_SQUARE_BRACKET (when within an array) or VALUE_SEPARATOR (when within an array) should preceed VALUE_STRING, instead got: %v\n", tokens[prevTkn])
+			}
 		case VALUE_SEPARATOR:
-			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER || stack.Peek() == RIGHT_CURLY_BRACKET || stack.Peek() == RIGHT_SQUARE_BRACKET {
-				stack.Pop()
-			} else {
-				return false, fmt.Errorf("a comma (value separator) must come after a value string or literal or number")
+			prevTkn := TokenList[i-1].tokenType
+			prevTknState := TokenList[i-1].tokenState
+			if prevTknState == INVALID {
+				return false, fmt.Errorf("VALUE_SEPARATOR should not come after LEFT_CURLY_BRACKET or  RIGHT_CURLY_BRACKET (when the object isn't nested, got: %v\n", tokens[prevTkn])
 			}
-			stack.Push(VALUE_SEPARATOR)
+
+			if prevTkn != RIGHT_CURLY_BRACKET && prevTkn != VALUE_STRING && prevTkn != NUMBER && prevTkn != LITERAL {
+				return false, fmt.Errorf("RIGHT_CURLY_BRACKET or VALUE_STRING or NUMBER or LITERAL must precede VALUE_SEPARATOR, got: %v\n", tokens[prevTkn])
+			}
+		case NUMBER:
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != NAME_SEPARATOR && (t.tokenState == WITHIN_ARRAY && prevTkn != VALUE_SEPARATOR && prevTkn != LEFT_SQUARE_BRACKET) {
+				return false, fmt.Errorf("NAME_SEPARATOR or VALUE_SEPARATOR (within an array) or LEFT_SQUARE_BRACKET (within an array) should preceed NUMBER, instead got: %v\n", tokens[prevTkn])
+			}
+		case LITERAL:
+			prevTkn := TokenList[i-1].tokenType
+			if prevTkn != NAME_SEPARATOR {
+				return false, fmt.Errorf("NAME_SEPARATOR should preceed LITERAL, instead got: %v\n", tokens[prevTkn])
+			}
 		default:
-			return false, fmt.Errorf("unhandled token")
+			return false, fmt.Errorf("invalid token: %v\n", tokens[t.tokenType])
 		}
 	}
 
