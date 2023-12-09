@@ -1,0 +1,9 @@
+{
+  "nested object": {"weather": "sunny"},
+  "nested object2": {"weather": "rainy"},
+  "nested object3": {
+    "nested object4": {
+      "weather": "humid"
+    }
+  }
+}

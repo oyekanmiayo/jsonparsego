@@ -40,6 +40,25 @@ const (
 	NUMBER
 )
 
+// (TODO) Write a post about this. It's a slice that works as a map. Why?
+var tokens = [...]string{
+	ILLEGAL:             "ILLEGAL",
+	LEFT_CURLY_BRACKET:  "LEFT_CURLY_BRACKET",
+	RIGHT_CURLY_BRACKET: "RIGHT_CURLY_BRACKET",
+
+	LEFT_SQUARE_BRACKET:  "LEFT_SQUARE_BRACKET",
+	RIGHT_SQUARE_BRACKET: "RIGHT_SQUARE_BRACKET",
+
+	NAME_SEPARATOR:  "NAME_SEPARATOR",
+	VALUE_SEPARATOR: "VALUE_SEPARATOR",
+
+	NAME_STRING:  "NAME_STRING",
+	VALUE_STRING: "VALUE_STRING",
+
+	LITERAL: "LITERAL",
+	NUMBER:  "NUMBER",
+}
+
 func scanTokens(data []byte) ([]Token, error) {
 
 	var TokenList []Token
@@ -100,11 +119,23 @@ func scanTokens(data []byte) ([]Token, error) {
 
 			// strToken := Token{}
 
-			if TokenList[len(TokenList)-1].tokenType == LEFT_CURLY_BRACKET || TokenList[len(TokenList)-1].tokenType == VALUE_SEPARATOR {
+			if TokenList[len(TokenList)-1].tokenType == LEFT_CURLY_BRACKET {
 				TokenList = append(TokenList, Token{
 					tokenType: NAME_STRING, tokenState: getTokenState(tokenStateStack),
 				})
+			} else if tokenStateStack.Peek() == WITHIN_OBJECT && TokenList[len(TokenList)-1].tokenType == VALUE_SEPARATOR {
+				TokenList = append(TokenList, Token{
+					tokenType: NAME_STRING, tokenState: getTokenState(tokenStateStack),
+				})
+			} else if tokenStateStack.Peek() == WITHIN_ARRAY && TokenList[len(TokenList)-1].tokenType == VALUE_SEPARATOR {
+				TokenList = append(TokenList, Token{
+					tokenType: VALUE_STRING, tokenState: getTokenState(tokenStateStack),
+				})
 			} else if TokenList[len(TokenList)-1].tokenType == NAME_SEPARATOR {
+				TokenList = append(TokenList, Token{
+					tokenType: VALUE_STRING, tokenState: getTokenState(tokenStateStack),
+				})
+			} else if tokenStateStack.Peek() == WITHIN_ARRAY && TokenList[len(TokenList)-1].tokenType == LEFT_SQUARE_BRACKET {
 				TokenList = append(TokenList, Token{
 					tokenType: VALUE_STRING, tokenState: getTokenState(tokenStateStack),
 				})

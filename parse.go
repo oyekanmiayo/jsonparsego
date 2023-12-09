@@ -17,6 +17,7 @@ func parseTokens(TokenList []Token) (bool, error) {
 		case RIGHT_CURLY_BRACKET:
 			// This is for a case where we have just one name:value pair and value is a string
 			// when we encounter the right curly brace, the value string will still be in the stack
+			// Add one for }
 			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER {
 				stack.Pop()
 			} else if stack.Size() > 1 && stack.Peek() == NAME_SEPARATOR {
@@ -29,6 +30,11 @@ func parseTokens(TokenList []Token) (bool, error) {
 			} else {
 				return false, fmt.Errorf("there's no equivalent { for the }")
 			}
+
+			// this assumes that we have a nested
+			if stack.Size() > 1 {
+				stack.Push(RIGHT_CURLY_BRACKET)
+			}
 		case LEFT_SQUARE_BRACKET:
 			if stack.IsEmpty() || (stack.Peek() != NAME_SEPARATOR) {
 				return false, fmt.Errorf("[ can only come after a colon (:)")
@@ -39,6 +45,12 @@ func parseTokens(TokenList []Token) (bool, error) {
 			}
 			stack.Push(LEFT_SQUARE_BRACKET)
 		case RIGHT_SQUARE_BRACKET:
+
+			// Add one for }
+			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER {
+				stack.Pop()
+			}
+
 			if stack.IsEmpty() || (stack.Peek() != LEFT_SQUARE_BRACKET) {
 				return false, fmt.Errorf("] can only come after [")
 			}
@@ -46,6 +58,8 @@ func parseTokens(TokenList []Token) (bool, error) {
 			if stack.Peek() == LEFT_SQUARE_BRACKET {
 				stack.Pop()
 			}
+
+			stack.Push(RIGHT_SQUARE_BRACKET)
 		case NAME_STRING:
 			if stack.IsEmpty() || (stack.Peek() != VALUE_SEPARATOR && stack.Peek() != LEFT_CURLY_BRACKET) {
 				return false, fmt.Errorf("a field name MUST come before a comma or a left curly bracket")
@@ -101,7 +115,7 @@ func parseTokens(TokenList []Token) (bool, error) {
 			}
 			stack.Push(NAME_SEPARATOR)
 		case VALUE_SEPARATOR:
-			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER {
+			if stack.Peek() == VALUE_STRING || stack.Peek() == LITERAL || stack.Peek() == NUMBER || stack.Peek() == RIGHT_CURLY_BRACKET || stack.Peek() == RIGHT_SQUARE_BRACKET {
 				stack.Pop()
 			} else {
 				return false, fmt.Errorf("a comma (value separator) must come after a value string or literal or number")
