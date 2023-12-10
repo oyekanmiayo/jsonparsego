@@ -22,20 +22,25 @@ func parseTokens(TokenList []Token) (bool, error) {
 			stack.Push(LEFT_CURLY_BRACKET)
 		case RIGHT_CURLY_BRACKET:
 			prevTkn := TokenList[i-1].tokenType
-			if prevTkn != VALUE_STRING && prevTkn != NUMBER && prevTkn != LITERAL && prevTkn != RIGHT_CURLY_BRACKET && prevTkn != RIGHT_SQUARE_BRACKET {
+			if prevTkn != VALUE_STRING && prevTkn != NUMBER && prevTkn != LITERAL && prevTkn != RIGHT_CURLY_BRACKET && prevTkn != RIGHT_SQUARE_BRACKET && prevTkn != LEFT_CURLY_BRACKET {
 				return false, fmt.Errorf("VALUE_STRING or RIGHT_CURLY_BRACKET or LITERAL or RIGHT_SQUARE_BRACKET should preceed RIGHT_CURLY_BRACKET, instead got: %v\n", tokens[prevTkn])
 			}
 			stack.Pop()
 		case LEFT_SQUARE_BRACKET:
+			if i == 0 {
+				stack.Push(LEFT_SQUARE_BRACKET)
+				continue
+			}
+
 			prevTkn := TokenList[i-1].tokenType
-			if prevTkn != NAME_SEPARATOR {
-				return false, fmt.Errorf("NAME_SEPARATOR should preceed LEFT_SQUARE_BRACKET, instead got: %v\n", tokens[prevTkn])
+			if prevTkn != NAME_SEPARATOR && prevTkn != LEFT_SQUARE_BRACKET {
+				return false, fmt.Errorf("NAME_SEPARATOR or LEFT_SQUARE_BRACKET should preceed LEFT_SQUARE_BRACKET, instead got: %v\n", tokens[prevTkn])
 			}
 			stack.Push(LEFT_SQUARE_BRACKET)
 		case RIGHT_SQUARE_BRACKET:
 			prevTkn := TokenList[i-1].tokenType
-			if prevTkn != VALUE_STRING && prevTkn != NUMBER && prevTkn != LITERAL && prevTkn != RIGHT_CURLY_BRACKET {
-				return false, fmt.Errorf("VALUE_STRING or RIGHT_CURLY_BRACKET or LITERAL should preceed RIGHT_SQUARE_BRACKET, instead got: %v\n", tokens[prevTkn])
+			if prevTkn != VALUE_STRING && prevTkn != NUMBER && prevTkn != LITERAL && prevTkn != RIGHT_CURLY_BRACKET && prevTkn != RIGHT_SQUARE_BRACKET {
+				return false, fmt.Errorf("VALUE_STRING or RIGHT_CURLY_BRACKET or LITERAL or RIGHT_SQUARE_BRACKETshould preceed RIGHT_SQUARE_BRACKET, instead got: %v\n", tokens[prevTkn])
 			}
 			stack.Pop()
 		case NAME_STRING:

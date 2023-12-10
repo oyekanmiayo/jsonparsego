@@ -81,7 +81,7 @@ func scanTokens(data []byte) ([]Token, error) {
 			tokenStateStack.Push(WITHIN_OBJECT)
 		case '}':
 			if tokenStateStack.Pop() != WITHIN_OBJECT {
-				panic("Not storing token states well (WITHIN_OBJECT)")
+				return []Token{}, fmt.Errorf("not WITHIN_OBJECT")
 			}
 			TokenList = append(TokenList, Token{
 				tokenType: RIGHT_CURLY_BRACKET, tokenState: getTokenState(tokenStateStack),
@@ -90,8 +90,8 @@ func scanTokens(data []byte) ([]Token, error) {
 			TokenList = append(TokenList, Token{tokenType: LEFT_SQUARE_BRACKET})
 			tokenStateStack.Push(WITHIN_ARRAY)
 		case ']':
-			if tokenStateStack.Pop() != WITHIN_ARRAY {
-				panic("Not storing token states well (WITHIN_ARRAY)")
+			if tokenStateStack.IsEmpty() || tokenStateStack.Pop() != WITHIN_ARRAY {
+				return []Token{}, fmt.Errorf("not storing token states well (WITHIN_ARRAY) or invalid syntax")
 			}
 			TokenList = append(TokenList, Token{
 				tokenType: RIGHT_SQUARE_BRACKET, tokenState: getTokenState(tokenStateStack),
@@ -105,19 +105,30 @@ func scanTokens(data []byte) ([]Token, error) {
 			i := byteIdx + 1
 			for ; i < len(data); i++ {
 				// If we find an escapes quotation \" continue
-				if data[i] == '"' && data[i-1] == '\\' {
-					continue
+				if data[i-1] == '\\' {
+
+					if data[i] == '"' || data[i] == '\\' || data[i] == '/' || data[i] == 'b' || data[i] == 'f' || data[i] == 'n' || data[i] == 'r' || data[i] == 't' {
+						continue
+					} else {
+						// return an error
+						return []Token{}, fmt.Errorf("illegal escaped character: %v\n", string(data[i]))
+					}
+
 				}
 
 				if data[i] == '"' {
-					s := string(data[byteIdx+1 : i])
-					fmt.Println(s)
+					// s := string(data[byteIdx+1 : i])
+					// fmt.Println(s)
 					break
 				}
 			}
 			byteIdx = i
 
 			// strToken := Token{}
+
+			if tokenStateStack.IsEmpty() {
+				return []Token{}, fmt.Errorf("string token isn't WITHIN_OBJECT or WITHIN_ARRAY")
+			}
 
 			if TokenList[len(TokenList)-1].tokenType == LEFT_CURLY_BRACKET {
 				TokenList = append(TokenList, Token{
@@ -208,15 +219,72 @@ func scanTokens(data []byte) ([]Token, error) {
 			}
 			byteIdx = i + 3
 		case '-':
+			if byteIdx+1 == len(data) {
+				// return error. nothing after fraction
+				return []Token{}, fmt.Errorf("no character after the minus sym (+)")
+			}
+			byteIdx += 1
+			b = data[byteIdx]
+			fallthrough
+		case '+':
+			if byteIdx+1 == len(data) {
+				// return error. nothing after fraction
+				return []Token{}, fmt.Errorf("no character after the plus sym (+)")
+			}
+			byteIdx += 1
+			b = data[byteIdx]
+			fallthrough
 		default:
 			if IsDigit(b) {
+				// if b == 0, it means number is starting with 0 and that's not allowed
+				if b == '0' {
+					return []Token{}, fmt.Errorf("a number can't start with 0")
+				}
+
 				i := byteIdx + 1
 				for ; i < len(data); i++ {
 					if IsDigit(data[i]) {
 						continue
-					} else if data[i] == '.' && IsDigit(data[i+1]) { // fraction
+					} else if data[i] == '.' { // fraction
+						if i+1 == len(data) {
+							// return error. nothing after fraction
+							return []Token{}, fmt.Errorf("no character after the fraction sym (.)")
+						}
+
+						if !IsDigit(data[i+1]) {
+							// return error. what's after fraction isn't a number
+							return []Token{}, fmt.Errorf("character after the fraction sym (.) isn't a number")
+
+						}
 						continue
-					} else if (data[i] == 'e' || data[i] == 'E') && IsDigit(data[i+1]) { // exponent
+					} else if data[i] == 'e' || data[i] == 'E' { // exponent
+						if i+1 == len(data) {
+							// return error. nothing after fraction
+							return []Token{}, fmt.Errorf("no character after the exponent sym (e|E)")
+						}
+
+						if !IsDigit(data[i+1]) && data[i+1] != '-' && data[i+1] != '+' {
+							// return error. what's after fraction isn't a number
+							return []Token{}, fmt.Errorf("character after the exponent sym (e|E) isn't a number, minus or plsu")
+						}
+						continue
+					} else if data[i] == '-' || data[i] == '+' {
+						if i+1 == len(data) {
+							// return error. nothing after fraction
+							return []Token{}, fmt.Errorf("no character after the plus or minus sym (+|-)")
+						}
+
+						if IsDigit(data[i-1]) {
+							// there's an issue
+							// consider: +123, 1e-2
+							// in either case, there must not be a number before + or -
+							return []Token{}, fmt.Errorf("character before the plus or minus sym (+|-) IS a number and it shouldn't be")
+						}
+
+						if !IsDigit(data[i+1]) {
+							// return error. what's after fraction isn't a number
+							return []Token{}, fmt.Errorf("character after the plus or minus sym (+|-) isn't a number")
+						}
 						continue
 					} else {
 						break
@@ -232,6 +300,10 @@ func scanTokens(data []byte) ([]Token, error) {
 				return []Token{}, fmt.Errorf("invalid token: %c", b)
 			}
 		}
+	}
+
+	if len(TokenList) == 0 {
+		return []Token{}, fmt.Errorf("json file is empty")
 	}
 
 	return TokenList, nil
